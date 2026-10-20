@@ -1,0 +1,66 @@
+{
+  "corpus": "caderno-rag-experimental.pdf",
+  "license": "CC0-1.0",
+  "cases": [
+    {
+      "id": "mvp-objective",
+      "question": "Qual e o objetivo deste MVP?",
+      "expectedPage": 2,
+      "expectedTerms": ["RAG", "livros"]
+    },
+    {
+      "id": "accepted-input",
+      "question": "Que tipo de PDF o MVP aceita?",
+      "expectedPage": 3,
+      "expectedTerms": ["texto selecionavel"]
+    },
+    {
+      "id": "page-provenance",
+      "question": "Quais dados de origem um trecho preserva?",
+      "expectedPage": 4,
+      "expectedTerms": ["livro", "paginas"]
+    },
+    {
+      "id": "chunk-size",
+      "question": "Qual e o tamanho aproximado de um chunk?",
+      "expectedPage": 5,
+      "expectedTerms": ["600", "tokens"]
+    },
+    {
+      "id": "vector-store",
+      "question": "Qual servico armazena vetores?",
+      "expectedPage": 6,
+      "expectedTerms": ["Qdrant"]
+    },
+    {
+      "id": "ready-state",
+      "question": "Em que estado um livro pode responder perguntas?",
+      "expectedPage": 7,
+      "expectedTerms": ["ready"]
+    },
+    {
+      "id": "retrieval-count",
+      "question": "Quantos chunks a busca usa por padrao?",
+      "expectedPage": 8,
+      "expectedTerms": ["seis", "chunks"]
+    },
+    {
+      "id": "source-fields",
+      "question": "Que campos aparecem em cada fonte?",
+      "expectedPage": 9,
+      "expectedTerms": ["titulo", "paginas", "excerto"]
+    },
+    {
+      "id": "insufficient-context",
+      "question": "O que acontece sem evidencia recuperada?",
+      "expectedPage": 10,
+      "expectedTerms": ["insufficientContext", "nao inventa"]
+    },
+    {
+      "id": "private-storage",
+      "question": "Onde os PDFs enviados ficam armazenados?",
+      "expectedPage": 11,
+      "expectedTerms": ["local", "privado"]
+    }
+  ]
+}
