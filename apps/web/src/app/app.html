@@ -1,0 +1,99 @@
+<main>
+  <header>
+    <p class="eyebrow">Biblioteca privada · RAG local</p>
+    <h1>LivroChat</h1>
+    <p class="lead">Envie PDFs com texto selecionável, acompanhe a indexação e converse com fontes verificáveis.</p>
+  </header>
+
+  @if (error()) {
+    <p class="notice" role="alert">{{ error() }}</p>
+  }
+
+  <section class="panel" aria-labelledby="library-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Acervo</p>
+        <h2 id="library-title">Sua biblioteca</h2>
+      </div>
+      <button type="button" class="secondary" (click)="refreshBooks()" [disabled]="loadingBooks()">
+        {{ loadingBooks() ? 'Atualizando…' : 'Atualizar' }}
+      </button>
+    </div>
+
+    <div class="upload-box">
+      <label for="pdf-file">Adicionar um PDF</label>
+      <input id="pdf-file" type="file" accept="application/pdf,.pdf" (change)="selectFile($event)" />
+      <button type="button" (click)="upload()" [disabled]="uploading()">
+        {{ uploading() ? 'Enviando…' : 'Enviar para indexação' }}
+      </button>
+    </div>
+
+    <p class="hint">Apenas PDFs com camada de texto. Documentos escaneados sem OCR serão marcados como falhos.</p>
+
+    <ul class="book-list" aria-label="Livros enviados">
+      @for (book of books(); track book.id) {
+        <li class="book-row" [class.ready]="book.status === 'ready'">
+          <label class="scope">
+            <input
+              type="checkbox"
+              [checked]="isSelected(book.id)"
+              [disabled]="book.status !== 'ready'"
+              (change)="toggleBook(book)"
+              [attr.aria-label]="'Selecionar ' + book.title"
+            />
+            <span>
+              <strong>{{ book.title }}</strong>
+              <small>{{ pageLabel(book) }} · {{ book.createdAt }}</small>
+            </span>
+          </label>
+          <span class="status" [class]="book.status">{{ book.status }}</span>
+          @if (book.processingError) {
+            <p class="failure" role="status">{{ book.processingError }}</p>
+          }
+        </li>
+      } @empty {
+        <li class="empty">Nenhum livro ainda. Envie um PDF para começar.</li>
+      }
+    </ul>
+  </section>
+
+  <section class="panel conversation" aria-labelledby="conversation-title">
+    <div>
+      <p class="eyebrow">Consulta fundamentada</p>
+      <h2 id="conversation-title">Converse com o acervo</h2>
+      <p class="hint">{{ readyBookCount() }} livro(s) pronto(s). Sem seleção, a busca usa todos os livros prontos.</p>
+    </div>
+
+    <form (submit)="ask(); $event.preventDefault()">
+      <label for="question">Sua pergunta</label>
+      <textarea id="question" rows="4" [formField]="questionForm.question" placeholder="Ex.: Como o corpus define RAG?"></textarea>
+      @if (questionForm.question().touched() && questionForm.question().errors().length) {
+        <p class="failure">{{ questionForm.question().errors()[0].message }}</p>
+      }
+      <button type="submit" [disabled]="asking() || questionForm().invalid()">
+        {{ asking() ? 'Buscando evidências…' : 'Perguntar' }}
+      </button>
+    </form>
+
+    @if (answer(); as result) {
+      <article class="answer" [class.insufficient]="result.insufficientContext">
+        <p class="eyebrow">Resposta</p>
+        <p>{{ result.answer }}</p>
+        @if (result.insufficientContext) {
+          <p class="hint">Não há uma afirmação sem fonte para este resultado.</p>
+        } @else {
+          <h3>Fontes</h3>
+          <ul class="sources">
+            @for (source of result.sources; track source.chunkId) {
+              <li>
+                <strong>{{ source.title }}</strong>
+                <span>Páginas {{ source.pageStart }}–{{ source.pageEnd }}</span>
+                <blockquote>{{ source.excerpt }}</blockquote>
+              </li>
+            }
+          </ul>
+        }
+      </article>
+    }
+  </section>
+</main>
