@@ -3,6 +3,9 @@ import { getAiProviderConfiguration } from './ai-provider.config.js';
 
 export const EMBEDDING_PROVIDER = Symbol('EMBEDDING_PROVIDER');
 
+const maxBatchItems = 64;
+const maxBatchBytes = 100_000;
+
 export interface EmbeddingProvider {
   embed(texts: string[]): Promise<number[][]>;
 }
@@ -22,14 +25,54 @@ export class OpenAiEmbeddingProvider implements EmbeddingProvider {
     if (texts.length === 0) {
       return [];
     }
-    const response = await this.getClient().embeddings.create({
-      model: this.model,
-      input: texts,
-      dimensions: this.dimensions,
-      encoding_format: 'float',
+
+    const byteLengths = texts.map((text, index) => {
+      const size = Buffer.byteLength(text, 'utf8');
+      if (size > maxBatchBytes) {
+        throw new Error(
+          `O trecho ${index} excede o limite de ${maxBatchBytes} bytes para embeddings.`,
+        );
+      }
+      return size;
     });
 
-    return response.data.sort((left, right) => left.index - right.index).map((item) => item.embedding);
+    const vectors: number[][] = [];
+    for (let start = 0; start < texts.length;) {
+      let end = start;
+      let batchBytes = 0;
+      while (
+        end < texts.length &&
+        end - start < maxBatchItems &&
+        batchBytes + byteLengths[end] <= maxBatchBytes
+      ) {
+        batchBytes += byteLengths[end];
+        end += 1;
+      }
+
+      const batch = texts.slice(start, end);
+      const response = await this.getClient().embeddings.create({
+        model: this.model,
+        input: batch,
+        dimensions: this.dimensions,
+        encoding_format: 'float',
+      });
+      const ordered = [...response.data].sort(
+        (left, right) => left.index - right.index,
+      );
+      if (
+        ordered.length !== batch.length ||
+        ordered.some((item, index) => item.index !== index)
+      ) {
+        throw new Error(
+          `A resposta de embeddings contém índices inválidos no lote iniciado no trecho ${start}.`,
+        );
+      }
+
+      vectors.push(...ordered.map((item) => item.embedding));
+      start = end;
+    }
+
+    return vectors;
   }
 
   private getClient(): OpenAI {

@@ -1,6 +1,10 @@
 import type { Book, CreateBookInput } from './book.types.js';
 import { fileURLToPath } from 'node:url';
-import { BookIndexingWorker, PdfWithoutTextError, unsupportedScannedPdfMessage } from './book-indexing.worker.js';
+import {
+  BookIndexingWorker,
+  PdfWithoutTextError,
+  unsupportedScannedPdfMessage,
+} from './book-indexing.worker.js';
 import type { BookRepository } from './book-repository.js';
 import type { BookFileStore } from './file-storage.service.js';
 import { PdfTextExtractionWorker } from './pdf-text-extraction.worker.js';
@@ -8,7 +12,10 @@ import { PageChunkingService } from './page-chunking.service.js';
 import type { EmbeddingProvider } from './embedding-provider.js';
 import type { ChunkVectorStore, VectorChunk } from './qdrant-chunk-store.js';
 
-const fixtureRoot = new URL('../../../../test/fixtures/corpus/', import.meta.url);
+const fixtureRoot = new URL(
+  '../../../../test/fixtures/corpus/',
+  import.meta.url,
+);
 
 describe('BookIndexingWorker', () => {
   it('transiciona uploaded para processing e ready quando encontra texto por página', async () => {
@@ -55,12 +62,45 @@ describe('BookIndexingWorker', () => {
       new InMemoryVectorStore(),
     );
 
-    await expect(worker.process(book.id)).rejects.toBeInstanceOf(PdfWithoutTextError);
+    await expect(worker.process(book.id)).rejects.toBeInstanceOf(
+      PdfWithoutTextError,
+    );
     expect(repository.current).toMatchObject({
       status: 'failed',
       processingError: unsupportedScannedPdfMessage,
     });
     expect(repository.transitions).toEqual(['processing', 'failed']);
+  });
+
+  it('não altera vetores quando a geração de embeddings falha', async () => {
+    const repository = new InMemoryBookRepository();
+    const book = repository.seed('caderno-rag-experimental.pdf');
+    const vectorStore = new InMemoryVectorStore();
+    const failure = new Error('Falha no provedor');
+    const failingEmbeddings: EmbeddingProvider = {
+      embed: async () => {
+        throw failure;
+      },
+    };
+    const worker = new BookIndexingWorker(
+      repository,
+      fixtureStore(),
+      new PdfTextExtractionWorker(),
+      new PageChunkingService(),
+      failingEmbeddings,
+      vectorStore,
+    );
+
+    await expect(worker.process(book.id)).rejects.toBe(failure);
+    expect(repository.current).toMatchObject({
+      status: 'failed',
+      pageCount: null,
+      processingError: 'Falha durante a indexação do PDF.',
+    });
+    expect(repository.transitions).toEqual(['processing', 'failed']);
+    expect(vectorStore.removeCalls).toEqual([]);
+    expect(vectorStore.upsertCalls).toBe(0);
+    expect(vectorStore.chunks).toEqual([]);
   });
 });
 
@@ -135,12 +175,16 @@ class FakeEmbeddingProvider implements EmbeddingProvider {
 
 class InMemoryVectorStore implements ChunkVectorStore {
   chunks: VectorChunk[] = [];
+  removeCalls: string[] = [];
+  upsertCalls = 0;
 
   async upsert(chunks: VectorChunk[]): Promise<void> {
+    this.upsertCalls += 1;
     this.chunks.push(...chunks);
   }
 
   async removeByBookId(bookId: string): Promise<void> {
+    this.removeCalls.push(bookId);
     this.chunks = this.chunks.filter((chunk) => chunk.bookId !== bookId);
   }
 
