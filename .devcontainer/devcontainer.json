@@ -1,0 +1,23 @@
+{
+  "name": "LivroChat RAG",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [4200, 3000, 5432, 6379, 6333],
+  "portsAttributes": {
+    "4200": { "label": "Angular", "onAutoForward": "openPreview" },
+    "3000": { "label": "API NestJS", "onAutoForward": "notify" },
+    "6333": { "label": "Qdrant", "onAutoForward": "silent" }
+  },
+  "postCreateCommand": "npm ci --prefix apps/api && npm ci --prefix apps/web",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Angular.ng-template",
+        "dbaeumer.vscode-eslint",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# Dependências e artefatos gerados
+**/node_modules/
+**/dist/
+**/.angular/
+**/*.tsbuildinfo
+
+# Ambiente local e dados de desenvolvimento
+.env
+.env.*
+!.env.example
+uploads/
+storage/
+
+# Sistema operacional e editor
+.DS_Store
+.idea/
