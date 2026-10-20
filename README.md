@@ -73,6 +73,8 @@ O endpoint `GET /books` retorna o catálogo com título, total de páginas, data
 - Os arquivos enviados são armazenados em `storage/uploads`, fora do controle de versão e sem rota HTTP pública.
 - Use somente livros em domínio público, com licença compatível ou para os quais você tenha autorização. O fixture versionado em `test/fixtures/corpus` é um caderno original sob CC0, criado apenas para os testes.
 
+Na indexação, os embeddings são enviados em lotes de até 64 trechos e 100.000 bytes UTF-8 por requisição. Se qualquer lote falhar, o livro fica em `failed` e nenhum vetor parcial desse processamento é gravado. Consulte o terminal da API para ver o erro técnico; a biblioteca mostra apenas a mensagem resumida. Depois de atualizar a API ou resolver a causa, envie o PDF novamente. Livros já marcados como `failed` não são reprocessados automaticamente.
+
 ## Grounding e recuperação
 
 `POST /questions` recebe uma pergunta e, opcionalmente, `bookIds`. A API gera o embedding da pergunta, consulta no máximo `RAG_TOP_K` trechos (padrão: 6) e aplica o filtro no Qdrant somente aos livros do escopo que estejam em estado `ready`.
