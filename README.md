@@ -1,4 +1,4 @@
-# LivroChat RAG
+# Document Chat RAG
 
 Projeto de estudo de *Retrieval-Augmented Generation* (RAG) para enviar livros em PDF e fazer perguntas fundamentadas no conteúdo deles.
 
